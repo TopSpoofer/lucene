@@ -585,6 +585,8 @@ public class FSTCompiler<T> {
 
 
     frontierPrint();
+    bytes.printCurrentBytes();
+    System.out.println("\n---------------------------------");
     // System.out.println("  count[0]=" + frontier[0].inputCount);
   }
 
@@ -594,7 +596,6 @@ public class FSTCompiler<T> {
       System.out.println(node.toString());
       if (node.isTerminalNode()) break;
     }
-    System.out.println("\n---------------------------------");
   }
 
   private boolean validOutput(T output) {

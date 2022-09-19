@@ -514,4 +514,27 @@ class BytesStore extends DataOutput implements Accountable {
   public String toString() {
     return getClass().getSimpleName() + "(numBlocks=" + blocks.size() + ")";
   }
+
+  private int lastPoint = 0;
+
+  public void printCurrentBytes() {
+    StringBuffer sbContent = new StringBuffer("current: [ ");
+    int currentPoint = 0;
+
+    for (int i = 0; i < current.length; i++) {
+      if (i != 0 && current[i] == 0) {
+        break;
+      } else {
+        currentPoint++;
+        sbContent.append(current[i] + "(" + i + ")");
+        if (i + 1 < current.length && current[i + 1] != 0) {
+          sbContent.append(", ");
+        }
+      }
+    }
+
+    lastPoint = currentPoint;
+    sbContent.append(" ]");
+    System.out.println(sbContent.toString());
+  }
 }

@@ -52,7 +52,7 @@ public class TestFSTDirectAddressing extends LuceneTestCase {
   }
 
   public void testLongFst() throws Exception {
-    List<String> words = Arrays.asList("mo", "moth", "pop", "star", "stop", "top");
+    List<String> words = Arrays.asList("mop", "moth", "pop", "star", "stop", "top");
     List<Long> outputs = Arrays.asList(100L, 91L, 72L, 83L, 54L, 55L);
     List<BytesRef> entries = new ArrayList<>();
 
