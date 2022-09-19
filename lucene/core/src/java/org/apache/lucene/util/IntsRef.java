@@ -56,6 +56,15 @@ public final class IntsRef implements Comparable<IntsRef>, Cloneable {
     assert isValid();
   }
 
+  public String utf8String() {
+    BytesRef b = new BytesRef(this.length);
+    for(int x=0; x < this.length; x++) {
+      b.bytes[x] = (byte) this.ints[x];
+    }
+    b.length = this.length;
+    return b.utf8ToString();
+  }
+
   /**
    * Returns a shallow clone of this instance (the underlying ints are <b>not</b> copied and will be
    * shared by both the returned object and this object.

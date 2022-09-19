@@ -17,8 +17,11 @@
 package org.apache.lucene.util.fst;
 
 import java.io.IOException;
+import java.util.Arrays;
+
 import org.apache.lucene.store.ByteArrayDataOutput;
 import org.apache.lucene.util.ArrayUtil;
+import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IntsRef;
 import org.apache.lucene.util.IntsRefBuilder;
 import org.apache.lucene.util.fst.FST.INPUT_TYPE; // javadoc
@@ -454,20 +457,18 @@ public class FSTCompiler<T> {
    * IntSequenceOutputs}) then you cannot reuse across calls.
    */
   public void add(IntsRef input, T output) throws IOException {
-    /*
-    if (DEBUG) {
+    if (true) {
       BytesRef b = new BytesRef(input.length);
       for(int x=0;x<input.length;x++) {
         b.bytes[x] = (byte) input.ints[x];
       }
       b.length = input.length;
       if (output == NO_OUTPUT) {
-        System.out.println("\nFST ADD: input=" + toString(b) + " " + b);
+        System.out.println("\nFST ADD: input=" + b.utf8ToString() + " " + b);
       } else {
-        System.out.println("\nFST ADD: input=" + toString(b) + " " + b + " output=" + fst.outputs.outputToString(output));
+        System.out.println("\nFST ADD: input=" + b.utf8ToString() + " " + b + " output=" + fst.outputs.outputToString(output));
       }
     }
-    */
 
     // De-dup NO_OUTPUT since it must be a singleton:
     if (output.equals(NO_OUTPUT)) {
@@ -494,11 +495,21 @@ public class FSTCompiler<T> {
     // compare shared prefix length
     int pos1 = 0;
     int pos2 = input.offset;
+    String lastInputStr = lastInput.toIntsRef().utf8String();
+    String currentInputStr = input.utf8String();
+
     final int pos1Stop = Math.min(lastInput.length(), input.length);
     while (true) {
+      // 节点的出边数量加 1
       frontier[pos1].inputCount++;
       // System.out.println("  incr " + pos1 + " ct=" + frontier[pos1].inputCount + " n=" +
       // frontier[pos1]);
+      /**
+       * 当到达与上一个输入不一样的位置的时，跳出来
+       * mop 与 moth 不一样的位置为 t 开始，所以 pos1Stop = 2
+       *
+       *
+       */
       if (pos1 >= pos1Stop || lastInput.intAt(pos1) != input.ints[pos2]) {
         break;
       }
@@ -544,9 +555,9 @@ public class FSTCompiler<T> {
       final T wordSuffix;
 
       if (lastOutput != NO_OUTPUT) {
-        commonOutputPrefix = fst.outputs.common(output, lastOutput);
+        commonOutputPrefix = fst.outputs.common(output, lastOutput); // min
         assert validOutput(commonOutputPrefix);
-        wordSuffix = fst.outputs.subtract(lastOutput, commonOutputPrefix);
+        wordSuffix = fst.outputs.subtract(lastOutput, commonOutputPrefix); // lastOutput - commonOutputPrefix
         assert validOutput(wordSuffix);
         parentNode.setLastOutput(input.ints[input.offset + idx - 1], commonOutputPrefix);
         node.prependOutput(wordSuffix);
@@ -572,7 +583,18 @@ public class FSTCompiler<T> {
     // save last input
     lastInput.copyInts(input);
 
+
+    frontierPrint();
     // System.out.println("  count[0]=" + frontier[0].inputCount);
+  }
+
+  private void frontierPrint() {
+    for (int i = 0; i < frontier.length; i++) {
+      Node node = frontier[i];
+      System.out.println(node.toString());
+      if (node.isTerminalNode()) break;
+    }
+    System.out.println("\n---------------------------------");
   }
 
   private boolean validOutput(T output) {
@@ -630,6 +652,22 @@ public class FSTCompiler<T> {
     boolean isFinal;
     T output;
     T nextFinalOutput;
+
+    @Override
+    public String toString() {
+      String tag = "";
+      if (target != null && target.isCompiled()) {
+        tag = "target=" + target.toString();
+      }
+
+      return "Arc{" +
+              "label=" + (char) label + "(" + label + ")" +
+              ", " + tag +
+              ", isFinal=" + isFinal +
+              ", output=" + output +
+              ", nextFinalOutput=" + nextFinalOutput +
+              '}';
+    }
   }
 
   // NOTE: not many instances of Node or CompiledNode are in
@@ -638,6 +676,8 @@ public class FSTCompiler<T> {
 
   interface Node {
     boolean isCompiled();
+
+    boolean isTerminalNode();
   }
 
   public long fstRamBytesUsed() {
@@ -650,6 +690,16 @@ public class FSTCompiler<T> {
     @Override
     public boolean isCompiled() {
       return true;
+    }
+
+    @Override
+    public boolean isTerminalNode() {
+      return false;
+    }
+
+    @Override
+    public String toString() {
+      return "CompiledNode{" + "node=" + node + '}';
     }
   }
 
@@ -685,6 +735,11 @@ public class FSTCompiler<T> {
     @Override
     public boolean isCompiled() {
       return false;
+    }
+
+    @Override
+    public boolean isTerminalNode() {
+      return numArcs == 0;
     }
 
     void clear() {
@@ -764,6 +819,33 @@ public class FSTCompiler<T> {
         output = owner.fst.outputs.add(outputPrefix, output);
         assert owner.validOutput(output);
       }
+    }
+
+    @Override
+    public String toString() {
+      String tip = "";
+      if (isTerminalNode()) {
+        tip = "终止节点，";
+      }
+
+      String arcInfo = "";
+      if (!isTerminalNode()) {
+        StringBuilder sb = new StringBuilder("\n\t\t");
+        for (Arc<T> arc : arcs) {
+          if (arc.output == null) break;
+          sb.append(arc.toString() + "\n\t\t");
+        }
+        arcInfo = sb.toString();
+      }
+
+      return tip + "UnCompiledNode{" +
+              "numArcs=" + numArcs +
+              ", arcsCount=" + arcs.length +
+              ", output=" + output +
+              ", isFinal=" + isFinal +
+              ", inputCount=" + inputCount +
+              ", depth=" + depth +
+              '}' + arcInfo;
     }
   }
 

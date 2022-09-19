@@ -34,10 +34,7 @@ import java.util.zip.GZIPInputStream;
 import org.apache.lucene.store.ByteArrayDataInput;
 import org.apache.lucene.store.DataInput;
 import org.apache.lucene.store.InputStreamDataInput;
-import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.CharsRef;
-import org.apache.lucene.util.IntsRefBuilder;
-import org.apache.lucene.util.LuceneTestCase;
+import org.apache.lucene.util.*;
 
 public class TestFSTDirectAddressing extends LuceneTestCase {
 
@@ -47,10 +44,36 @@ public class TestFSTDirectAddressing extends LuceneTestCase {
     for (String word : words) {
       entries.add(new BytesRef(word.getBytes(StandardCharsets.US_ASCII)));
     }
+
     final BytesRefFSTEnum<Object> fstEnum = new BytesRefFSTEnum<>(buildFST(entries));
     for (BytesRef entry : entries) {
       assertNotNull(entry.utf8ToString() + " not found", fstEnum.seekExact(entry));
     }
+  }
+
+  public void testLongFst() throws Exception {
+    List<String> words = Arrays.asList("mo", "moth", "pop", "star", "stop", "top");
+    List<Long> outputs = Arrays.asList(100L, 91L, 72L, 83L, 54L, 55L);
+    List<BytesRef> entries = new ArrayList<>();
+
+    for (String word : words) {
+      entries.add(new BytesRef(word.getBytes(StandardCharsets.US_ASCII)));
+    }
+
+    FSTCompiler<Long> fstCompiler = new FSTCompiler.Builder<>(FST.INPUT_TYPE.BYTE1, PositiveIntOutputs.getSingleton())
+            .directAddressingMaxOversizingFactor(-1f)
+            .build();
+
+    int index = 0;
+    for (BytesRef entry : entries) {
+      fstCompiler.add(Util.toIntsRef(entry, new IntsRefBuilder()), outputs.get(index));
+      index++;
+    }
+
+    FST<Long> fst = fstCompiler.compile();
+    final BytesRefFSTEnum<Long> fstEnum = new BytesRefFSTEnum<>(fst);
+    BytesRefFSTEnum.InputOutput<Long> result = fstEnum.seekExact(entries.get(0));
+    System.out.println("get input: " + result.input.utf8ToString() + ", output: " + result.output);
   }
 
   public void testDeDupTails() throws Exception {
@@ -71,12 +94,12 @@ public class TestFSTDirectAddressing extends LuceneTestCase {
     assertTrue("FST size = " + size + " B", size <= 1648 * 1.01d);
   }
 
-  @Nightly
+  //@Nightly
   public void testWorstCaseForDirectAddressing() throws Exception {
     // This test will fail if there is more than 1% memory increase with direct addressing in this
     // worst case.
     final double MEMORY_INCREASE_LIMIT_PERCENT = 1d;
-    final int NUM_WORDS = 1000000;
+    final int NUM_WORDS = 10;
 
     // Generate words with specially crafted bytes.
     Set<BytesRef> wordSet = new HashSet<>();
