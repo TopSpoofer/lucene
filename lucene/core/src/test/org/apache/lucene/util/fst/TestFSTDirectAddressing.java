@@ -52,8 +52,12 @@ public class TestFSTDirectAddressing extends LuceneTestCase {
   }
 
   public void testLongFst() throws Exception {
-    List<String> words = Arrays.asList("mop", "moth", "pop", "star", "stop", "top");
-    List<Long> outputs = Arrays.asList(100L, 91L, 72L, 83L, 54L, 55L);
+//    List<String> words = Arrays.asList("mo", "moth", "pop", "star", "stop", "top");
+//    List<Long> outputs = Arrays.asList(100L, 91L, 72L, 83L, 54L, 55L);
+
+    List<String> words = Arrays.asList("a", "ab", "abc", "dec", "dfc");
+    List<Long> outputs = Arrays.asList(100L, 91L, 72L, 88L, 99L);
+
     List<BytesRef> entries = new ArrayList<>();
 
     for (String word : words) {
@@ -71,6 +75,11 @@ public class TestFSTDirectAddressing extends LuceneTestCase {
     }
 
     FST<Long> fst = fstCompiler.compile();
+
+    System.out.println("最终 current：");
+
+    fstCompiler.bytes.printFinishedBlocks();
+
     final BytesRefFSTEnum<Long> fstEnum = new BytesRefFSTEnum<>(fst);
     BytesRefFSTEnum.InputOutput<Long> result = fstEnum.seekExact(entries.get(0));
     System.out.println("get input: " + result.input.utf8ToString() + ", output: " + result.output);

@@ -518,7 +518,7 @@ class BytesStore extends DataOutput implements Accountable {
   private int lastPoint = 0;
 
   public void printCurrentBytes() {
-    StringBuffer sbContent = new StringBuffer("current: [ ");
+    StringBuffer sbContent = new StringBuffer("\ncurrent: [ ");
     int currentPoint = 0;
 
     for (int i = 0; i < current.length; i++) {
@@ -534,6 +534,24 @@ class BytesStore extends DataOutput implements Accountable {
     }
 
     lastPoint = currentPoint;
+    sbContent.append(" ]");
+    System.out.println(sbContent.toString());
+  }
+
+  public void printFinishedBlocks() {
+    int count = 0;
+    StringBuffer sbContent = new StringBuffer("\ncurrent: [ ");
+    for(int i = 0; i < blocks.size(); i++) {
+      byte[] a = blocks.get(i);
+      for (int j = 0; j < a.length; j++) {
+        sbContent.append(a[j] + "(" + count + ")");
+        sbContent.append(", ");
+        count++;
+      }
+    }
+    if (sbContent.charAt(sbContent.length() - 2) == ',' && sbContent.charAt(sbContent.length() - 1) == ' ') {
+      sbContent.delete(sbContent.length() - 2, sbContent.length());
+    }
     sbContent.append(" ]");
     System.out.println(sbContent.toString());
   }
